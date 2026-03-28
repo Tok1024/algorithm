@@ -1,0 +1,9 @@
+{
+    "debug.toolBarLocation": "docked",
+    "debug.allowBreakpointsEverywhere": true,
+    "debug.openDebug": "openOnSessionStart",
+    "lldb.launch.expressions": "native",
+    "C_Cpp.debugShortcut": false,
+    "code-runner.showRunIconInEditorTitleMenu": false,
+    "code-runner.showStopIconInEditorTitleMenu": false
+}

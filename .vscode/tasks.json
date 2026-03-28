@@ -1,0 +1,51 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "g++ build active file",
+            "type": "shell",
+            "command": "/bin/zsh",
+            "args": [
+                "-c",
+                "OUT=\"${workspaceFolder}/output/${relativeFileDirname}/${fileBasenameNoExtension}\"; mkdir -p \"${workspaceFolder}/output/${relativeFileDirname}\"; PIDS=$(lsof -t \"$OUT\" 2>/dev/null || true); if [ -n \"$PIDS\" ]; then kill -9 $PIDS; fi; /usr/bin/g++ -std=c++17 -Wall -Wextra -O0 -g3 \"${file}\" -o \"$OUT\""
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "detail": "Build active C++ file with debug symbols",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "g++ run active file",
+            "type": "shell",
+            "command": "/bin/zsh",
+            "args": [
+                "-c",
+                "OUT=\"${workspaceFolder}/output/${relativeFileDirname}/${fileBasenameNoExtension}\"; mkdir -p \"${workspaceFolder}/output/${relativeFileDirname}\"; PIDS=$(lsof -t \"$OUT\" 2>/dev/null || true); if [ -n \"$PIDS\" ]; then kill -9 $PIDS; fi; /usr/bin/g++ -std=c++17 -Wall -Wextra -O0 -g3 \"${file}\" -o \"$OUT\" && \"$OUT\""
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "focus": true,
+                "clear": true
+            }
+        }
+    ]
+}
