@@ -24,8 +24,9 @@ struct linked_list{
 
     // 删除第k个插入的元素之后的一个元素
     void del_k(int k){
-        if (!k) head = next[head];
+        if (!k) head = next[head]; // k = 0, 删除头元素
         else if(next[k-1] != -1) next[k-1] = next[next[k-1]];
+        else cout << "k invalid" << endl;
     }
 
     // 在第 k 个数后面插入x
