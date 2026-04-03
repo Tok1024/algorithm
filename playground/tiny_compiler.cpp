@@ -1,6 +1,7 @@
 #include <cctype>
 #include <cstddef>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -14,22 +15,12 @@ using namespace std;
 // term → factor (*|/) factor 乘除块
 // factor → number | (expr) 原子
 
-string expr;
-size_t idx = 0; // 全局指针
-
 string format_char(char c) {
     return string("'") + c + "'";
 }
 
 [[noreturn]] void fail(const string& msg){
-    string got = (idx < expr.size()) ? format_char(expr[idx]) : string("EOF");
-    throw runtime_error("Parse error at pos " + to_string(idx) + ": " + msg + ", got " + got);
-}
-
-void match(char c){
-    if(idx >= expr.size()) fail("expected " + format_char(c));
-    if(expr[idx] != c) fail("expected " + format_char(c));
-    else idx++;
+    throw runtime_error("Parse error : " + msg);
 }
 
 // 1. 词法分析
@@ -53,7 +44,7 @@ string to_string(TokenKind kind) {
 
 struct Token{
     TokenKind kind;
-    int value;
+    int value = 0;
 };
 
 class Lexer{
@@ -83,12 +74,12 @@ public:
             }
             else{
                 switch(c){
-                    case '+': tokens.push_back(Token{TokenKind::Plus, 0}); break;
-                    case '-': tokens.push_back(Token{TokenKind::Minus, 0}); break;
-                    case '*': tokens.push_back(Token{TokenKind::Star, 0}); break;
-                    case '/': tokens.push_back(Token{TokenKind::Slash, 0}); break;
-                    case '(': tokens.push_back(Token{TokenKind::LParen, 0}); break;
-                    case ')': tokens.push_back(Token{TokenKind::RParen, 0}); break;
+                    case '+': tokens.push_back(Token{TokenKind::Plus}); break;
+                    case '-': tokens.push_back(Token{TokenKind::Minus}); break;
+                    case '*': tokens.push_back(Token{TokenKind::Star}); break;
+                    case '/': tokens.push_back(Token{TokenKind::Slash}); break;
+                    case '(': tokens.push_back(Token{TokenKind::LParen}); break;
+                    case ')': tokens.push_back(Token{TokenKind::RParen}); break;
                     default: throw runtime_error("invalid character");
                 };
                 pos ++;
@@ -100,97 +91,182 @@ public:
 
 };
 
-int parse_expr();
-int parse_term();
-int parse_factor();
-int parse_number(){
-    size_t i = idx;
-    int x = 0;
-    if(i >= expr.size()) fail("expected number");
-    if(!isdigit(expr[i])) fail("expected number");
-    while(i < expr.size() && isdigit(expr[i])){
-        x = x * 10 + (expr[i] - '0');
-        i++;
+struct Expr{
+    virtual void print() const = 0; // 纯虚函数
+    virtual int eval() const = 0;
+};
+
+struct BinaryExpr: Expr{
+    unique_ptr<Expr> l, r;
+    char op;
+    // unique 指针不能拷贝复制，必须 move
+    BinaryExpr(char op, unique_ptr<Expr> left, unique_ptr<Expr> right): 
+    op(op), l(std::move(left)), r(std::move(right)) {};
+    void print() const override{
+        cout << '(';
+        l->print();
+        cout << ' ' <<  op << ' ';
+        r->print();
+        cout << ')';
+    };
+    int eval() const override{
+        int res = 0, a = l->eval(), b = r->eval();
+        switch(op){
+            case '+': res = a + b; break;
+            case '-': res = a - b; break;
+            case '*': res = a * b; break;
+            case '/': res = a / b; break;
+        }
+        return res;
     }
-    idx = i;
-    return x;
-}
+};
 
-int parse_factor(){
-    // 查看first集
-    if(idx >= expr.size()) fail("expected factor: number or '('");
-    char c = expr[idx];
-    int res;
-    if(c == '('){
-        match('(');
-
-        res = parse_expr();
-        match(')');
+struct NumberExpr: Expr{
+    int val;
+    NumberExpr(int x): val(x){};
+    void print() const override{
+        cout << val;
+    };
+    int eval() const override{
+        return val;
     }
-    else if(isdigit(c)){
-        res = parse_number();
+};
+
+class Parser{
+private:
+    vector<Token> tokens;
+    int pos;
+public:
+
+    Parser(const vector<Token>& toks): tokens(toks), pos(0){};
+
+    // 查看但不移动指针
+    const Token& peek(){
+        return tokens[pos];
     }
-    else{
-        fail("expected factor: number or '('");
+
+    // 检查是否匹配 t
+    bool match(TokenKind t){
+        if(tokens[pos].kind == t){
+            pos++;
+            return true;
+        }
+        return false;
     }
-    return res;
-}
 
-int parse_term(){
-    int res, b;
+    // 确定是 t，不匹配就报错
+    void expect(TokenKind t){
+        if(tokens[pos].kind == t){
+            pos++;
+        }
+        else{
+            string msg = "token type not match, expect:" + to_string(t) + ", got" + to_string(tokens[pos].kind);
+            fail(msg);
+        }
+    }
 
-    res = parse_factor();
+    unique_ptr<Expr> parse(){
+        return parse_expr();
+    }
 
-    // char c = expr[idx++]; 这里可能直接就结束了，不一定要继续parse
-    if(idx >= expr.size()) return res;
-    char c = expr[idx];
-    if(c == '+' || c == '-' || c == ')') return res;
+    unique_ptr<Expr> parse_expr(){
+        unique_ptr<Expr> res = parse_term();
 
-    while(c == '*' || c == '/'){
-        idx++;
-        b = parse_factor();
+        if(pos >= (int)tokens.size()) return res;
+        auto t = tokens[pos];
 
-        if(c == '*') res *= b;
-        else if(c == '/') {
-            if(b == 0) fail("division by zero");
-            res /= b;
+        while(t.kind == TokenKind::Plus || t.kind == TokenKind::Minus){
+            pos++;
+            auto b = parse_term();
+
+            if(t.kind == TokenKind::Plus){
+                res = make_unique<BinaryExpr>(
+                    '+', std::move(res), std::move(b)
+                );
+            }
+            else if(t.kind == TokenKind::Minus){
+                res = make_unique<BinaryExpr>(
+                    '-', std::move(res), std::move(b)
+                );
+            }
+
+            if(pos >= tokens.size()) break;
+            t  = tokens[pos];
         }
 
-        if(idx >= expr.size()) break;
-        c = expr[idx];
-    }
-    return res;
-}
-
-int parse_expr(){
-    int b, res;
-
-    res = parse_term();
-
-    // char c = expr[idx++]; 这里可能直接就结束了，不一定要继续parse
-    if(idx >= expr.size()) return res;
-    char c = expr[idx];
-
-    while(c == '+' || c == '-'){
-        idx++;
-        b = parse_term();
-
-        if(c == '+') res += b;
-        else if(c == '-') res -= b;
-
-        if(idx >= expr.size()) break;
-        c = expr[idx];
+        return res;
     }
 
-    return res;
-}
+    unique_ptr<Expr> parse_number(){
+        if(peek().kind != TokenKind::Number) throw runtime_error("not a number");
+        int val = peek().value;
+        pos++;
+        return make_unique<NumberExpr>(val);
+    }
+
+    unique_ptr<Expr> parse_factor(){
+        if(pos >= tokens.size()) fail("expected factor: number or (");
+        auto token = tokens[pos];
+        unique_ptr<Expr> res;
+        if(match(TokenKind::LParen)){
+            res = parse_expr();
+            expect(TokenKind::RParen);
+        }
+        else{
+            res = parse_number();
+        }
+        return res;
+    }
+
+    unique_ptr<Expr> parse_term(){
+        unique_ptr<Expr> res = parse_factor();
+
+        if(pos >= (int)tokens.size()) return res;
+        auto t = tokens[pos];
+        if(t.kind == TokenKind::Plus || t.kind == TokenKind::Minus || t.kind == TokenKind::RParen) return res;
+
+        while(t.kind == TokenKind::Slash || t.kind == TokenKind::Star){
+            pos++;
+            auto b = parse_factor();
+
+            if(t.kind == TokenKind::Star){
+                res = make_unique<BinaryExpr>(
+                    '*', std::move(res), std::move(b)
+                );
+            }
+            else if(t.kind == TokenKind::Slash){
+                if(b->eval() == 0) fail("devide by zero");
+                res = make_unique<BinaryExpr>(
+                    '/', std::move(res), std::move(b)
+                );
+            }
+
+            if(pos >= tokens.size()) break;
+            t  = tokens[pos];
+        }
+
+        return res;
+
+    }
+
+    void print_ast(const unique_ptr<Expr>& root){
+        root->print();
+    }
+
+};
 
 int main(){
     string s;
     getline(cin, s);
     Lexer lex(s);
     auto tokens = lex.tokenize();
-    for(auto& token:tokens){
-        cout << "{ kind: " << to_string(token.kind) << ", val: " << token.value << "}" << endl;
+
+    for(auto& t: tokens){
+        cout << "{ kind: " << to_string(t.kind) << ", value: " << t.value << " }" << endl;
     }
+
+    Parser pas(tokens);
+    auto root = pas.parse();
+    cout << root->eval() << endl;
+    root->print();
 }
