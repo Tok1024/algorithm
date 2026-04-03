@@ -11,13 +11,9 @@ using namespace std;
 // 递归下降法计算表达式求值
 // 输入：1000*(3+5)
 // 文法：
-// expr → term (+|-) term 加减块
-// term → factor (*|/) factor 乘除块
-// factor → number | (expr) 原子
-
-string format_char(char c) {
-    return string("'") + c + "'";
-}
+// expr → term ('+' | '-' term)* 加减块
+// term → factor ( '*' | '/' factor)* 乘除块
+// factor → number | (expr) | '-' factor原子
 
 [[noreturn]] void fail(const string& msg){
     throw runtime_error("Parse error : " + msg);
@@ -50,13 +46,13 @@ struct Token{
 class Lexer{
 private:
     string s;
-    int pos;
+    size_t pos;
 public:
     Lexer(string& input): s(input), pos(0){};
 
     vector<Token> tokenize(){
         vector<Token> tokens;
-        while(pos < (int)s.size()){
+        while(pos < s.size()){
             char c = s[pos];
             if(isspace(c)){
                 pos++;
@@ -66,9 +62,10 @@ public:
             c = s[pos];
             if(isdigit(c)){
                 int x = 0;
-                while(isdigit(c)){
-                    x = 10*x + c-'0';
-                    c = s[++pos];
+                while(pos < s.size() && isdigit(s[pos])){
+                    x = 10*x + s[pos]-'0';
+                    pos++;
+                    // c = s[++pos]; 不要写s[++i]这种！很容易越界
                 }
                 tokens.push_back(Token{TokenKind::Number, x});
             }
@@ -86,6 +83,7 @@ public:
             }
 
         }
+        tokens.push_back(Token{TokenKind::Eof});
         return tokens;
     }
 
@@ -94,6 +92,24 @@ public:
 struct Expr{
     virtual void print() const = 0; // 纯虚函数
     virtual int eval() const = 0;
+    virtual ~Expr() = default; // OOP 的习惯，抽象类一定要写虚析构函数，动态绑定子类的析构函数进行销毁
+};
+
+struct UnaryExpr: Expr{
+    char op;
+    unique_ptr<Expr> node;
+    UnaryExpr(char op, unique_ptr<Expr> nd): op(op), node(std::move(nd)) {};
+
+    void print() const override{
+        cout << "( - ";
+        node->print();
+        cout << " )";
+    }
+
+    int eval() const override{
+        return - node->eval();
+    };
+
 };
 
 struct BinaryExpr: Expr{
@@ -135,13 +151,13 @@ struct NumberExpr: Expr{
 class Parser{
 private:
     vector<Token> tokens;
-    int pos;
+    size_t pos;
 public:
 
     Parser(const vector<Token>& toks): tokens(toks), pos(0){};
 
     // 查看但不移动指针
-    const Token& peek(){
+    const Token& peek() const {
         return tokens[pos];
     }
 
@@ -166,13 +182,15 @@ public:
     }
 
     unique_ptr<Expr> parse(){
-        return parse_expr();
+        auto root = parse_expr();
+        expect(TokenKind::Eof);
+        return root;
     }
 
     unique_ptr<Expr> parse_expr(){
         unique_ptr<Expr> res = parse_term();
 
-        if(pos >= (int)tokens.size()) return res;
+        if(pos >= tokens.size()) return res;
         auto t = tokens[pos];
 
         while(t.kind == TokenKind::Plus || t.kind == TokenKind::Minus){
@@ -206,11 +224,16 @@ public:
 
     unique_ptr<Expr> parse_factor(){
         if(pos >= tokens.size()) fail("expected factor: number or (");
-        auto token = tokens[pos];
         unique_ptr<Expr> res;
         if(match(TokenKind::LParen)){
             res = parse_expr();
             expect(TokenKind::RParen);
+        }
+        else if(match(TokenKind::Minus)){
+            res = parse_factor();
+            res = make_unique<UnaryExpr>(
+                '-', std::move(res)
+            );
         }
         else{
             res = parse_number();
@@ -221,7 +244,7 @@ public:
     unique_ptr<Expr> parse_term(){
         unique_ptr<Expr> res = parse_factor();
 
-        if(pos >= (int)tokens.size()) return res;
+        if(pos >= tokens.size()) return res;
         auto t = tokens[pos];
         if(t.kind == TokenKind::Plus || t.kind == TokenKind::Minus || t.kind == TokenKind::RParen) return res;
 
@@ -235,7 +258,6 @@ public:
                 );
             }
             else if(t.kind == TokenKind::Slash){
-                if(b->eval() == 0) fail("devide by zero");
                 res = make_unique<BinaryExpr>(
                     '/', std::move(res), std::move(b)
                 );
@@ -261,9 +283,9 @@ int main(){
     Lexer lex(s);
     auto tokens = lex.tokenize();
 
-    for(auto& t: tokens){
-        cout << "{ kind: " << to_string(t.kind) << ", value: " << t.value << " }" << endl;
-    }
+    // for(auto& t: tokens){
+    //     cout << "{ kind: " << to_string(t.kind) << ", value: " << t.value << " }" << endl;
+    // }
 
     Parser pas(tokens);
     auto root = pas.parse();
