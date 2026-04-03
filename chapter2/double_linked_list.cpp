@@ -10,7 +10,7 @@ struct double_linked_list{
     double_linked_list(){
         init();
     }
-    
+
     void init(){
         idx = 2;
         l[head] = tail;
