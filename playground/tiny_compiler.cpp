@@ -1,6 +1,10 @@
+#include <cctype>
+#include <cstddef>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
+#include <ctype.h>
 using namespace std;
 
 // 递归下降法计算表达式求值
@@ -22,15 +26,79 @@ string format_char(char c) {
     throw runtime_error("Parse error at pos " + to_string(idx) + ": " + msg + ", got " + got);
 }
 
-bool is_digit(char c) {
-    return c <= '9' && c >= '0';
-}
-
 void match(char c){
     if(idx >= expr.size()) fail("expected " + format_char(c));
     if(expr[idx] != c) fail("expected " + format_char(c));
     else idx++;
 }
+
+// 1. 词法分析
+enum class TokenKind {
+    Number, Plus, Minus, Star, Slash, LParen, RParen, Eof
+};
+
+string to_string(TokenKind kind) {
+    switch (kind) {
+        case TokenKind::Number: return "Number";
+        case TokenKind::Plus:   return "Plus";
+        case TokenKind::Minus:  return "Minus";
+        case TokenKind::Star:   return "Star";
+        case TokenKind::Slash:  return "Slash";
+        case TokenKind::LParen: return "LParen";
+        case TokenKind::RParen: return "RParen";
+        case TokenKind::Eof:    return "Eof";
+        default: return "Unknown";
+    }
+}
+
+struct Token{
+    TokenKind kind;
+    int value;
+};
+
+class Lexer{
+private:
+    string s;
+    int pos;
+public:
+    Lexer(string& input): s(input), pos(0){};
+
+    vector<Token> tokenize(){
+        vector<Token> tokens;
+        while(pos < (int)s.size()){
+            char c = s[pos];
+            if(isspace(c)){
+                pos++;
+                continue;
+            }
+            // while(pos < (int(s.size())) && isspace(s[pos])) pos++;
+            c = s[pos];
+            if(isdigit(c)){
+                int x = 0;
+                while(isdigit(c)){
+                    x = 10*x + c-'0';
+                    c = s[++pos];
+                }
+                tokens.push_back(Token{TokenKind::Number, x});
+            }
+            else{
+                switch(c){
+                    case '+': tokens.push_back(Token{TokenKind::Plus, 0}); break;
+                    case '-': tokens.push_back(Token{TokenKind::Minus, 0}); break;
+                    case '*': tokens.push_back(Token{TokenKind::Star, 0}); break;
+                    case '/': tokens.push_back(Token{TokenKind::Slash, 0}); break;
+                    case '(': tokens.push_back(Token{TokenKind::LParen, 0}); break;
+                    case ')': tokens.push_back(Token{TokenKind::RParen, 0}); break;
+                    default: throw runtime_error("invalid character");
+                };
+                pos ++;
+            }
+
+        }
+        return tokens;
+    }
+
+};
 
 int parse_expr();
 int parse_term();
@@ -39,8 +107,8 @@ int parse_number(){
     size_t i = idx;
     int x = 0;
     if(i >= expr.size()) fail("expected number");
-    if(!is_digit(expr[i])) fail("expected number");
-    while(i < expr.size() && is_digit(expr[i])){
+    if(!isdigit(expr[i])) fail("expected number");
+    while(i < expr.size() && isdigit(expr[i])){
         x = x * 10 + (expr[i] - '0');
         i++;
     }
@@ -59,7 +127,7 @@ int parse_factor(){
         res = parse_expr();
         match(')');
     }
-    else if(is_digit(c)){
+    else if(isdigit(c)){
         res = parse_number();
     }
     else{
@@ -118,12 +186,11 @@ int parse_expr(){
 }
 
 int main(){
-    try {
-        cin >> expr;
-        int res = parse_expr();
-        if(idx != expr.size()) fail("unexpected trailing tokens");
-        cout << res << endl;
-    } catch (const runtime_error& e) {
-        cout << e.what() << endl;
+    string s;
+    getline(cin, s);
+    Lexer lex(s);
+    auto tokens = lex.tokenize();
+    for(auto& token:tokens){
+        cout << "{ kind: " << to_string(token.kind) << ", val: " << token.value << "}" << endl;
     }
 }
