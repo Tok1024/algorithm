@@ -88,7 +88,7 @@ struct MinHeap{
         for(int i = size / 2; i >= 1; i--) down(i);
     }
 
-    void sort(){a
+    void sort(){
         for(int i = size / 2; i >= 1; i--) down(i);
     }
 
