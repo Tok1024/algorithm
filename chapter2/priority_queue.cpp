@@ -47,6 +47,21 @@ struct MinHeap{
         }
     }
 
+    void down_recursion(int k)//调整函数
+    {
+        //t记录最小点的编号
+        int t = k;
+
+        //有左儿子，并且左儿子比t节点的值小，更新t
+        if(lchild(k) <= size && h[lchild(k)] < h[t]) t = lchild(k);
+        if(rchild(k) <= size && h[rchild(k)] < h[t]) t = rchild(k);
+
+        if(t != k){
+            swap(h[t], h[k]);
+            down_recursion(t);
+        }
+    }
+
     void up(int k){
         int p = k;
         while(p > 1 && h[parent(p)] > h[p]){
@@ -65,7 +80,7 @@ struct MinHeap{
     void pop(){
         if(size == 0) return;
         h[1] = h[size--];
-        down(1);
+        down_recursion(1);
     }
 
     // 删除第k个元素
@@ -97,13 +112,13 @@ struct MinHeap{
 
 int main(){
     MinHeap pq;
-    vector<int> a;
-    int m, n, t;
+    int m, n;
     cin >> n >> m;
-
+    pq.size = n;
     for(int i = 1; i <= n; i++) {
         cin >> pq.h[i];
     }
+    pq.sort();
     while(m--){
         cout << pq.top() << ' ';
         pq.pop();
