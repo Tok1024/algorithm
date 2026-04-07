@@ -15,7 +15,7 @@ const int N = 1e5+10;
 // 数组模拟的最小堆，可以追踪第k个插入节点
 struct MinHeap{
     int h[N], ph[N], hp[N]; // h是实际的heap数组，而ph，hp是pointer到heap的双向映射，必须保持一致
-    int size = 0, idx = 0;
+    int size = 0, idx = 0; // 从0开始，使用时++size，维护的是1索引的数组
 
     int parent(int k) {return k / 2;}
     int lchild(int k) {return k * 2;}
