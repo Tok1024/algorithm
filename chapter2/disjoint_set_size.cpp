@@ -2,21 +2,11 @@
 using namespace std;
 
 /* 并查集
-并查集disjoint set是一种用于判断集合/图的连通性的数据结构
-支持
-- isConnected() 判断两个图是否连接
-- connect(a, b) 连接两个图
-
-而并查集关键的操作是
-- find(a) 顺着叶节点向上找到根节点
-
-并查集维护一个数组 p ，idx对应唯一的节点，数组值p[idx]是父节点的idx，形成了一棵树
-只有根节点的数组值等于自身 p[x] = x
+在并查集的基础上记录每个集合的大小
 */
 const int MAX_SIZE = 1e5;
 struct DisjointSet{
-    int size = 0;
-    int p[MAX_SIZE]; // 简单版本的并查集，只存储1-n的数字
+    int p[MAX_SIZE], size[MAX_SIZE]; // 简单版本的并查集，只存储1-n的数字
 
     int find(int x){
         if (p[x] != x) p[x] = find(p[x]); // 递归向上 + 路径压缩
@@ -24,8 +14,10 @@ struct DisjointSet{
     }
 
     void range(int n){
-        for(int i = 1; i <= n; i++) p[i] = i;
-        size = n;
+        for(int i = 1; i <= n; i++) {
+            p[i] = i;
+            size[i] = 1;
+        }
     }
 
     bool isConnected(int a, int b){
@@ -33,7 +25,14 @@ struct DisjointSet{
     }
 
     void connect(int a, int b){
-        p[find(a)] = find(b); // 把a的祖宗节点挂到b的祖宗节点下面
+        int pa = p[a], pb = p[b]; // 需要先判断是否是同一棵树
+        if(pa == pb) return;
+        size[pb] += size[pa];
+        p[pa] = find(pb); // 把a的祖宗节点挂到b的祖宗节点下面
+    }
+
+    int count(int x){
+        return size[find(x)];
     }
 
 };
@@ -46,14 +45,18 @@ int main(){
     ds.range(n);
     while(m--){
         cin >> op;
-        if(op == "M"){
+        if(op == "C"){
             cin >> a >> b;
             ds.connect(a, b);
         }
-        else if(op == "Q"){
+        else if(op == "Q1"){
             cin >> a >> b;
             if(ds.isConnected(a, b)) cout << "Yes" << endl;
             else cout << "No" << endl;
+        }
+        else if(op == "Q2"){
+            cin >> a;
+            cout << ds.count(a) << endl;
         }
     }
 }
