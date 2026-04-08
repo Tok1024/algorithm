@@ -28,7 +28,7 @@ struct DisjointSet{
         int pa = p[a], pb = p[b]; // 需要先判断是否是同一棵树
         if(pa == pb) return;
         size[pb] += size[pa];
-        p[pa] = find(pb); // 把a的祖宗节点挂到b的祖宗节点下面
+        p[pa] = pb; // 把a的祖宗节点挂到b的祖宗节点下面
     }
 
     int count(int x){
