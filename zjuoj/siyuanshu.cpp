@@ -8,7 +8,8 @@ using namespace std;
  * 考虑用dfs记忆化搜索
 */
 typedef long long ll ;
-const int N = 10010;
+// const int N = 10010;// cao, 10010 = 1e4+10
+const int N = 1e5+10; // 100100
 ll dp[4][N]; // 四个状态，每个状态可能有N个值对应
 
 // 记忆化搜索的模板
