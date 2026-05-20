@@ -7,7 +7,7 @@
             "command": "/bin/zsh",
             "args": [
                 "-c",
-                "OUT=\"${workspaceFolder}/output/${relativeFileDirname}/${fileBasenameNoExtension}\"; mkdir -p \"${workspaceFolder}/output/${relativeFileDirname}\"; PIDS=$(lsof -t \"$OUT\" 2>/dev/null || true); if [ -n \"$PIDS\" ]; then kill -9 $PIDS; fi; /usr/bin/g++ -std=c++17 -Wall -Wextra -O0 -g3 \"${file}\" -o \"$OUT\""
+                "OUT=\"${workspaceFolder}/output/${relativeFileDirname}/${fileBasenameNoExtension}\"; mkdir -p \"${workspaceFolder}/output/${relativeFileDirname}\"; PIDS=$(lsof -t \"$OUT\" 2>/dev/null || true); if [ -n \"$PIDS\" ]; then kill -9 $PIDS; fi; COMPILER=$(command -v g++-15 || command -v g++-14 || command -v g++-13 || command -v /opt/homebrew/bin/g++-15 || command -v /usr/local/bin/g++-15 || command -v g++); \"$COMPILER\" -std=c++17 -Wall -Wextra -O0 -g3 \"${file}\" -o \"$OUT\""
             ],
             "options": {
                 "cwd": "${fileDirname}"
@@ -32,7 +32,7 @@
             "command": "/bin/zsh",
             "args": [
                 "-c",
-                "OUT=\"${workspaceFolder}/output/${relativeFileDirname}/${fileBasenameNoExtension}\"; mkdir -p \"${workspaceFolder}/output/${relativeFileDirname}\"; PIDS=$(lsof -t \"$OUT\" 2>/dev/null || true); if [ -n \"$PIDS\" ]; then kill -9 $PIDS; fi; /usr/bin/g++ -std=c++17 -Wall -Wextra -O0 -g3 \"${file}\" -o \"$OUT\" && \"$OUT\""
+                "OUT=\"${workspaceFolder}/output/${relativeFileDirname}/${fileBasenameNoExtension}\"; mkdir -p \"${workspaceFolder}/output/${relativeFileDirname}\"; PIDS=$(lsof -t \"$OUT\" 2>/dev/null || true); if [ -n \"$PIDS\" ]; then kill -9 $PIDS; fi; COMPILER=$(command -v g++-15 || command -v g++-14 || command -v g++-13 || command -v /opt/homebrew/bin/g++-15 || command -v /usr/local/bin/g++-15 || command -v g++); \"$COMPILER\" -std=c++17 -Wall -Wextra -O0 -g3 \"${file}\" -o \"$OUT\" && \"$OUT\""
             ],
             "options": {
                 "cwd": "${fileDirname}"

@@ -18,7 +18,7 @@
 ## 已配置内容
 
 - 构建任务：`.vscode/tasks.json`
-  - `g++ build active file`：编译当前文件（`-std=c++17 -O0 -g3 -Wall -Wextra`）
+  - `g++ build active file`：编译当前文件（`-std=c++17 -O0 -g3 -Wall -Wextra`），优先使用 Homebrew GCC（如 `g++-15`），避免 macOS clang 不支持 `bits/stdc++.h`。
   - `g++ run active file`：单终端内“编译并运行”当前文件
 - 调试配置：`.vscode/launch.json`
   - `C++ Debug (g++/CodeLLDB)`：编译 + 断点调试
@@ -55,6 +55,9 @@
 
 ## 常见问题
 
+- 报错：`fatal error: 'bits/stdc++.h' file not found`
+  - 原因：macOS 自带 `/usr/bin/g++` 实际是 clang，不支持这类 GNU 竞赛头文件。
+  - 解决：安装 GCC，例如 `brew install gcc`。当前脚本会优先使用 `g++-15`、`g++-14`、`g++-13`。
 - 报错：`The program "xxx" is already running. Please close it before compiling again.`
   - 原因：目标可执行文件仍被后台进程占用（窗口关了但进程未退出）。
   - 当前项目已处理：构建前会自动尝试清理占用该可执行文件的进程。
